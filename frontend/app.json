@@ -1,0 +1,52 @@
+{
+    "expo": {
+        "name": "AI Math Solver",
+        "slug": "ai-math-solver",
+        "version": "1.0.0",
+        "orientation": "portrait",
+        "icon": "./assets/icon.png",
+        "userInterfaceStyle": "automatic",
+        "splash": {
+            "image": "./assets/splash.png",
+            "resizeMode": "contain",
+            "backgroundColor": "#1a1a2e"
+        },
+        "assetBundlePatterns": [
+            "**/*"
+        ],
+        "ios": {
+            "supportsTablet": true,
+            "bundleIdentifier": "com.yourname.aimathsolver",
+            "infoPlist": {
+                "NSCameraUsageDescription": "This app needs camera access to scan handwritten math equations."
+            }
+        },
+        "android": {
+            "adaptiveIcon": {
+                "foregroundImage": "./assets/adaptive-icon.png",
+                "backgroundColor": "#1a1a2e"
+            },
+            "package": "com.yourname.aimathsolver",
+            "permissions": [
+                "CAMERA"
+            ]
+        },
+        "web": {
+            "favicon": "./assets/favicon.png"
+        },
+        "plugins": [
+            [
+                "expo-camera",
+                {
+                    "cameraPermission": "Allow AI Math Solver to access your camera to scan equations."
+                }
+            ],
+            [
+                "expo-image-picker",
+                {
+                    "photosPermission": "Allow AI Math Solver to access your photos to select equation images."
+                }
+            ]
+        ]
+    }
+}
