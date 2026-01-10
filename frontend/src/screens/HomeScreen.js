@@ -167,10 +167,13 @@ const HomeScreen = ({ navigation }) => {
                             </View>
                         </View>
 
-                        {/* Credits */}
+                        {/* About / Credits */}
                         <View style={styles.credits}>
                             <Text style={styles.creditsNames}>
-                                Built by Vijay & Umesh 🚀
+                                crafted by Umesh & Vijay
+                            </Text>
+                            <Text style={styles.creditsCopyright}>
+                                © 2024 V&V Labs
                             </Text>
                         </View>
                     </Animated.View>
@@ -334,6 +337,12 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         marginTop: 4,
         letterSpacing: 0.5,
+    },
+    creditsCopyright: {
+        color: COLORS.textMuted,
+        fontSize: 11,
+        marginTop: 6,
+        opacity: 0.7,
     },
 });
 
