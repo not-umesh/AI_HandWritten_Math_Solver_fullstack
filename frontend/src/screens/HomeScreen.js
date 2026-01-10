@@ -173,7 +173,7 @@ const HomeScreen = ({ navigation }) => {
                                 crafted by Umesh & Vijay
                             </Text>
                             <Text style={styles.creditsCopyright}>
-                                © 2024 V&V Labs
+                                © 2026 U&V Labs
                             </Text>
                         </View>
                     </Animated.View>
