@@ -58,6 +58,11 @@ def solve_equation():
         if ',' in image_data:
             image_data = image_data.split(',')[1]
         
+        # Fix base64 padding if needed
+        padding = 4 - len(image_data) % 4
+        if padding != 4:
+            image_data += '=' * padding
+        
         image_bytes = base64.b64decode(image_data)
         
         # Get handlers (lazy loaded)

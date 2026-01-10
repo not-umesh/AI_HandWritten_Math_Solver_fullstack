@@ -4,6 +4,7 @@ Gemini Handler - Google Gemini Vision API (Memory Optimized)
 
 import os
 import gc
+import base64
 
 class GeminiHandler:
     def __init__(self):
@@ -30,16 +31,22 @@ class GeminiHandler:
             from PIL import Image
             from io import BytesIO
             
-            # Open and resize image to reduce memory
-            image = Image.open(BytesIO(image_bytes))
+            # Create a fresh BytesIO object and ensure it's at the start
+            buffer = BytesIO(image_bytes)
+            buffer.seek(0)
             
-            # Resize large images to max 800px
+            # Open image
+            image = Image.open(buffer)
+            image.load()  # Force load the image data
+            
+            # Resize large images to max 800px to save memory
             max_size = 800
             if image.width > max_size or image.height > max_size:
                 ratio = min(max_size / image.width, max_size / image.height)
                 new_size = (int(image.width * ratio), int(image.height * ratio))
                 image = image.resize(new_size, Image.Resampling.LANCZOS)
             
+            # Convert to RGB if needed
             if image.mode != 'RGB':
                 image = image.convert('RGB')
             
@@ -50,7 +57,9 @@ Use x, y, z for variables. No explanation, just the equation."""
             response = self.model.generate_content([prompt, image])
             
             # Clean up
+            buffer.close()
             del image
+            del buffer
             gc.collect()
             
             if response.text:
@@ -69,8 +78,10 @@ Use x, y, z for variables. No explanation, just the equation."""
                 
         except Exception as e:
             gc.collect()
+            error_msg = str(e)
+            print(f"Gemini extract error: {error_msg}")
             return {
                 'success': False,
-                'error': str(e),
+                'error': error_msg,
                 'equation': ''
             }
