@@ -1,26 +1,38 @@
 """
-AI Handwritten Math Solver - Flask Backend
+AI Handwritten Math Solver - Flask Backend (Memory Optimized)
 """
 
 import os
+import gc
 import traceback
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 import base64
 from io import BytesIO
-from PIL import Image
-
-from math_solver import MathSolver
-from gemini_handler import GeminiHandler
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
-math_solver = MathSolver()
-gemini_handler = GeminiHandler()
+# Lazy loading - only initialize when needed
+_math_solver = None
+_gemini_handler = None
+
+def get_math_solver():
+    global _math_solver
+    if _math_solver is None:
+        from math_solver import MathSolver
+        _math_solver = MathSolver()
+    return _math_solver
+
+def get_gemini_handler():
+    global _gemini_handler
+    if _gemini_handler is None:
+        from gemini_handler import GeminiHandler
+        _gemini_handler = GeminiHandler()
+    return _gemini_handler
 
 @app.route('/', methods=['GET'])
 def home():
@@ -48,8 +60,13 @@ def solve_equation():
         
         image_bytes = base64.b64decode(image_data)
         
-        # Use Gemini to extract equation
-        gemini_result = gemini_handler.extract_equation(image_bytes)
+        # Get handlers (lazy loaded)
+        gemini = get_gemini_handler()
+        gemini_result = gemini.extract_equation(image_bytes)
+        
+        # Clear image bytes from memory
+        del image_bytes
+        gc.collect()
         
         if not gemini_result['success']:
             return jsonify({
@@ -60,7 +77,11 @@ def solve_equation():
         equation_text = gemini_result['equation']
         
         # Solve equation
-        solution = math_solver.solve(equation_text)
+        solver = get_math_solver()
+        solution = solver.solve(equation_text)
+        
+        # Clean up
+        gc.collect()
         
         return jsonify({
             'success': True,
@@ -75,6 +96,7 @@ def solve_equation():
         
     except Exception as e:
         traceback.print_exc()
+        gc.collect()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/solve-text', methods=['POST'])
@@ -86,7 +108,10 @@ def solve_text_equation():
             return jsonify({'success': False, 'error': 'No equation provided'}), 400
         
         equation = data['equation']
-        solution = math_solver.solve(equation)
+        solver = get_math_solver()
+        solution = solver.solve(equation)
+        
+        gc.collect()
         
         return jsonify({
             'success': True,
@@ -100,6 +125,7 @@ def solve_text_equation():
         
     except Exception as e:
         traceback.print_exc()
+        gc.collect()
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':

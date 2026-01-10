@@ -1,16 +1,16 @@
 """
-Math Solver - SymPy based
+Math Solver - SymPy based (Memory Optimized)
 """
 
-from sympy import (
-    sympify, solve, simplify, expand, factor,
-    symbols, sqrt, sin, cos, tan, log, ln, exp, pi, E, Eq
-)
+import re
+
+# Only import what we need from sympy
+from sympy import symbols, sqrt, sin, cos, tan, log, ln, exp, pi, E, Eq
+from sympy import solve, simplify
 from sympy.parsing.sympy_parser import (
     parse_expr, standard_transformations,
     implicit_multiplication_application, convert_xor
 )
-import re
 
 class MathSolver:
     def __init__(self):
