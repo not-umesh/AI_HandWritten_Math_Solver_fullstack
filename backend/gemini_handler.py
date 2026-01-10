@@ -1,6 +1,6 @@
 """
-AI Handler - Multi-provider support (OpenRouter, Gemini)
-Tries OpenRouter first (free Llama 3.2 Vision), falls back to Gemini
+AI Handler - Multi-provider support with FREE vision models
+Uses Qwen2.5-VL 7B (free) for vision, with fallback options
 """
 
 import os
@@ -11,17 +11,16 @@ import requests
 
 class AIHandler:
     def __init__(self):
-        # OpenRouter (free tier with Llama Vision)
+        # OpenRouter for free models
         self.openrouter_key = os.environ.get('OPENROUTER_API_KEY', '')
         
-        # Gemini as fallback
+        # Gemini as last fallback
         self.gemini_key = os.environ.get('GEMINI_API_KEY', '')
         self.gemini_model = None
         
         self.last_request_time = 0
-        self.min_request_interval = 3  # 3 seconds between requests
+        self.min_request_interval = 3
         
-        # Initialize Gemini if available
         if self.gemini_key:
             try:
                 import google.generativeai as genai
@@ -31,14 +30,13 @@ class AIHandler:
                 print(f"Gemini init error: {e}")
     
     def _rate_limit(self):
-        """Rate limiting"""
         elapsed = time.time() - self.last_request_time
         if elapsed < self.min_request_interval:
             time.sleep(self.min_request_interval - elapsed)
         self.last_request_time = time.time()
     
     def _compress_image(self, image_bytes):
-        """Compress image to reduce API usage"""
+        """Compress image to reduce API token usage"""
         from PIL import Image
         from io import BytesIO
         
@@ -57,7 +55,6 @@ class AIHandler:
         if image.mode != 'RGB':
             image = image.convert('RGB')
         
-        # Compress to JPEG
         output = BytesIO()
         image.save(output, format='JPEG', quality=60, optimize=True)
         output.seek(0)
@@ -67,13 +64,12 @@ class AIHandler:
         
         return output.read()
     
-    def _try_openrouter(self, image_bytes):
-        """Try OpenRouter with free Llama 3.2 Vision"""
+    def _try_openrouter(self, image_bytes, model_name):
+        """Try OpenRouter with specified model"""
         if not self.openrouter_key:
             return None
         
         try:
-            # Compress and encode image
             compressed = self._compress_image(image_bytes)
             b64_image = base64.b64encode(compressed).decode('utf-8')
             
@@ -85,7 +81,7 @@ class AIHandler:
             }
             
             payload = {
-                'model': 'meta-llama/llama-4-maverick:free',
+                'model': model_name,
                 'messages': [
                     {
                         'role': 'user',
@@ -110,7 +106,7 @@ class AIHandler:
                 'https://openrouter.ai/api/v1/chat/completions',
                 headers=headers,
                 json=payload,
-                timeout=30
+                timeout=60
             )
             
             del compressed
@@ -118,19 +114,21 @@ class AIHandler:
             
             if response.status_code == 200:
                 data = response.json()
-                equation = data['choices'][0]['message']['content'].strip()
-                equation = equation.replace('```', '').strip()
-                return {'success': True, 'equation': equation, 'provider': 'openrouter'}
-            else:
-                print(f"OpenRouter error: {response.status_code} - {response.text}")
-                return None
+                if 'choices' in data and len(data['choices']) > 0:
+                    equation = data['choices'][0]['message']['content'].strip()
+                    equation = equation.replace('```', '').replace('math', '').strip()
+                    print(f"OpenRouter success with {model_name}: {equation}")
+                    return {'success': True, 'equation': equation, 'provider': model_name}
+            
+            print(f"OpenRouter {model_name} failed: {response.status_code} - {response.text[:200]}")
+            return None
                 
         except Exception as e:
-            print(f"OpenRouter error: {e}")
+            print(f"OpenRouter {model_name} error: {e}")
             return None
     
     def _try_gemini(self, image_bytes):
-        """Try Gemini Vision"""
+        """Try Gemini Vision as fallback"""
         if not self.gemini_model:
             return None
         
@@ -150,6 +148,7 @@ class AIHandler:
             if response.text:
                 equation = response.text.strip()
                 equation = equation.replace('```', '').strip()
+                print(f"Gemini success: {equation}")
                 return {'success': True, 'equation': equation, 'provider': 'gemini'}
             return None
             
@@ -158,27 +157,36 @@ class AIHandler:
             return None
     
     def extract_equation(self, image_bytes):
-        """Extract equation using available providers"""
+        """Extract equation using available free providers"""
         self._rate_limit()
         
-        # Try OpenRouter first (better free tier)
-        result = self._try_openrouter(image_bytes)
-        if result:
-            return result
+        # List of free vision models to try (in order of preference)
+        free_vision_models = [
+            'qwen/qwen2.5-vl-7b-instruct:free',      # Qwen2.5-VL 7B - best for vision
+            'google/gemma-3-12b-it:free',             # Gemma 3 12B
+            'google/gemma-3-4b-it:free',              # Gemma 3 4B
+        ]
+        
+        # Try each free vision model
+        for model in free_vision_models:
+            print(f"Trying model: {model}")
+            result = self._try_openrouter(image_bytes, model)
+            if result:
+                return result
+            time.sleep(1)  # Small delay between attempts
         
         # Fallback to Gemini
         result = self._try_gemini(image_bytes)
         if result:
             return result
         
-        # Both failed
         gc.collect()
         return {
             'success': False,
-            'error': 'Could not process image. Please ensure you have configured OPENROUTER_API_KEY or GEMINI_API_KEY.',
+            'error': 'All AI providers failed. Please check OPENROUTER_API_KEY is set correctly in Render.',
             'equation': ''
         }
 
 
-# Backward compatibility alias
+# Backward compatibility
 GeminiHandler = AIHandler
