@@ -169,11 +169,8 @@ const HomeScreen = ({ navigation }) => {
 
                         {/* Credits */}
                         <View style={styles.credits}>
-                            <Text style={styles.creditsText}>
-                                Made with ❤️ by
-                            </Text>
                             <Text style={styles.creditsNames}>
-                                Vijay Tiwari & Umesh Verma
+                                Built by Vijay & Umesh 🚀
                             </Text>
                         </View>
                     </Animated.View>
