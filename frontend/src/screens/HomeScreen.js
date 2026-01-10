@@ -166,6 +166,16 @@ const HomeScreen = ({ navigation }) => {
                                 <FeatureItem icon="flash" text="Instant results" />
                             </View>
                         </View>
+
+                        {/* Credits */}
+                        <View style={styles.credits}>
+                            <Text style={styles.creditsText}>
+                                Made with ❤️ by
+                            </Text>
+                            <Text style={styles.creditsNames}>
+                                Vijay Tiwari & Umesh Verma
+                            </Text>
+                        </View>
                     </Animated.View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -310,6 +320,23 @@ const styles = StyleSheet.create({
     featureText: {
         color: COLORS.textSecondary,
         fontSize: 14,
+    },
+    credits: {
+        marginTop: 40,
+        alignItems: 'center',
+        paddingBottom: 20,
+    },
+    creditsText: {
+        color: COLORS.textMuted,
+        fontSize: 12,
+        fontStyle: 'italic',
+    },
+    creditsNames: {
+        color: COLORS.primary,
+        fontSize: 14,
+        fontWeight: '600',
+        marginTop: 4,
+        letterSpacing: 0.5,
     },
 });
 
