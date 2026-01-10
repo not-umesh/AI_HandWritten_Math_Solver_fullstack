@@ -1,131 +1,184 @@
 """
-Gemini Handler - Google Gemini Vision API (Free Tier Optimized)
-- Smaller images to reduce token usage
-- Rate limiting
-- Retry with backoff
-- Use gemini-1.5-flash (better free tier support)
+AI Handler - Multi-provider support (OpenRouter, Gemini)
+Tries OpenRouter first (free Llama 3.2 Vision), falls back to Gemini
 """
 
 import os
 import gc
 import time
+import base64
+import requests
 
-class GeminiHandler:
+class AIHandler:
     def __init__(self):
-        self.api_key = os.environ.get('GEMINI_API_KEY', '')
-        self.model = None
-        self.last_request_time = 0
-        self.min_request_interval = 2  # Min 2 seconds between requests
+        # OpenRouter (free tier with Llama Vision)
+        self.openrouter_key = os.environ.get('OPENROUTER_API_KEY', '')
         
-        if self.api_key:
+        # Gemini as fallback
+        self.gemini_key = os.environ.get('GEMINI_API_KEY', '')
+        self.gemini_model = None
+        
+        self.last_request_time = 0
+        self.min_request_interval = 3  # 3 seconds between requests
+        
+        # Initialize Gemini if available
+        if self.gemini_key:
             try:
                 import google.generativeai as genai
-                genai.configure(api_key=self.api_key)
-                # Use gemini-1.5-flash - better free tier quota
-                self.model = genai.GenerativeModel('gemini-1.5-flash')
+                genai.configure(api_key=self.gemini_key)
+                self.gemini_model = genai.GenerativeModel('gemini-1.5-flash')
             except Exception as e:
                 print(f"Gemini init error: {e}")
     
     def _rate_limit(self):
-        """Ensure minimum time between API calls"""
+        """Rate limiting"""
         elapsed = time.time() - self.last_request_time
         if elapsed < self.min_request_interval:
             time.sleep(self.min_request_interval - elapsed)
         self.last_request_time = time.time()
     
-    def extract_equation(self, image_bytes):
-        if not self.model:
-            return {
-                'success': False,
-                'error': 'Gemini API not configured. Please check GEMINI_API_KEY.',
-                'equation': ''
+    def _compress_image(self, image_bytes):
+        """Compress image to reduce API usage"""
+        from PIL import Image
+        from io import BytesIO
+        
+        buffer = BytesIO(image_bytes)
+        buffer.seek(0)
+        image = Image.open(buffer)
+        image.load()
+        
+        # Resize to max 512px
+        max_size = 512
+        if image.width > max_size or image.height > max_size:
+            ratio = min(max_size / image.width, max_size / image.height)
+            new_size = (int(image.width * ratio), int(image.height * ratio))
+            image = image.resize(new_size, Image.Resampling.LANCZOS)
+        
+        if image.mode != 'RGB':
+            image = image.convert('RGB')
+        
+        # Compress to JPEG
+        output = BytesIO()
+        image.save(output, format='JPEG', quality=60, optimize=True)
+        output.seek(0)
+        
+        buffer.close()
+        del image
+        
+        return output.read()
+    
+    def _try_openrouter(self, image_bytes):
+        """Try OpenRouter with free Llama 3.2 Vision"""
+        if not self.openrouter_key:
+            return None
+        
+        try:
+            # Compress and encode image
+            compressed = self._compress_image(image_bytes)
+            b64_image = base64.b64encode(compressed).decode('utf-8')
+            
+            headers = {
+                'Authorization': f'Bearer {self.openrouter_key}',
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://ai-math-solver.app',
+                'X-Title': 'AI Math Solver'
             }
+            
+            payload = {
+                'model': 'meta-llama/llama-3.2-11b-vision-instruct:free',
+                'messages': [
+                    {
+                        'role': 'user',
+                        'content': [
+                            {
+                                'type': 'text',
+                                'text': 'Extract the math equation from this image. Return ONLY the equation, nothing else.'
+                            },
+                            {
+                                'type': 'image_url',
+                                'image_url': {
+                                    'url': f'data:image/jpeg;base64,{b64_image}'
+                                }
+                            }
+                        ]
+                    }
+                ],
+                'max_tokens': 100
+            }
+            
+            response = requests.post(
+                'https://openrouter.ai/api/v1/chat/completions',
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+            
+            del compressed
+            gc.collect()
+            
+            if response.status_code == 200:
+                data = response.json()
+                equation = data['choices'][0]['message']['content'].strip()
+                equation = equation.replace('```', '').strip()
+                return {'success': True, 'equation': equation, 'provider': 'openrouter'}
+            else:
+                print(f"OpenRouter error: {response.status_code} - {response.text}")
+                return None
+                
+        except Exception as e:
+            print(f"OpenRouter error: {e}")
+            return None
+    
+    def _try_gemini(self, image_bytes):
+        """Try Gemini Vision"""
+        if not self.gemini_model:
+            return None
         
         try:
             from PIL import Image
             from io import BytesIO
             
-            # Rate limit to avoid quota exhaustion
-            self._rate_limit()
+            compressed = self._compress_image(image_bytes)
+            image = Image.open(BytesIO(compressed))
             
-            # Create buffer and load image
-            buffer = BytesIO(image_bytes)
-            buffer.seek(0)
-            image = Image.open(buffer)
-            image.load()
+            prompt = "Extract the math equation. Return ONLY the equation."
+            response = self.gemini_model.generate_content([prompt, image])
             
-            # AGGRESSIVE resize to minimize tokens (max 512px)
-            max_size = 512
-            if image.width > max_size or image.height > max_size:
-                ratio = min(max_size / image.width, max_size / image.height)
-                new_size = (int(image.width * ratio), int(image.height * ratio))
-                image = image.resize(new_size, Image.Resampling.LANCZOS)
-            
-            # Convert to RGB
-            if image.mode != 'RGB':
-                image = image.convert('RGB')
-            
-            # Compress image to JPEG with lower quality to reduce size
-            jpeg_buffer = BytesIO()
-            image.save(jpeg_buffer, format='JPEG', quality=70, optimize=True)
-            jpeg_buffer.seek(0)
-            compressed_image = Image.open(jpeg_buffer)
-            
-            # Short, efficient prompt
-            prompt = "Extract the math equation. Return ONLY the equation, nothing else."
-            
-            # Make API call with retry
-            response = None
-            max_retries = 2
-            
-            for attempt in range(max_retries):
-                try:
-                    response = self.model.generate_content([prompt, compressed_image])
-                    break
-                except Exception as api_error:
-                    error_str = str(api_error)
-                    if '429' in error_str and attempt < max_retries - 1:
-                        # Rate limited - wait and retry
-                        time.sleep(15)
-                        continue
-                    raise api_error
-            
-            # Clean up
-            buffer.close()
-            jpeg_buffer.close()
             del image
-            del compressed_image
             gc.collect()
             
-            if response and response.text:
+            if response.text:
                 equation = response.text.strip()
-                equation = equation.replace('```', '').replace('math', '').strip()
-                return {
-                    'success': True,
-                    'equation': equation
-                }
-            else:
-                return {
-                    'success': False,
-                    'error': 'No equation detected in image',
-                    'equation': ''
-                }
-                
+                equation = equation.replace('```', '').strip()
+                return {'success': True, 'equation': equation, 'provider': 'gemini'}
+            return None
+            
         except Exception as e:
-            gc.collect()
-            error_msg = str(e)
-            print(f"Gemini extract error: {error_msg}")
-            
-            # Provide helpful error for quota issues
-            if '429' in error_msg:
-                return {
-                    'success': False,
-                    'error': 'API rate limit reached. Please wait a moment and try again.',
-                    'equation': ''
-                }
-            
-            return {
-                'success': False,
-                'error': error_msg,
-                'equation': ''
-            }
+            print(f"Gemini error: {e}")
+            return None
+    
+    def extract_equation(self, image_bytes):
+        """Extract equation using available providers"""
+        self._rate_limit()
+        
+        # Try OpenRouter first (better free tier)
+        result = self._try_openrouter(image_bytes)
+        if result:
+            return result
+        
+        # Fallback to Gemini
+        result = self._try_gemini(image_bytes)
+        if result:
+            return result
+        
+        # Both failed
+        gc.collect()
+        return {
+            'success': False,
+            'error': 'Could not process image. Please ensure you have configured OPENROUTER_API_KEY or GEMINI_API_KEY.',
+            'equation': ''
+        }
+
+
+# Backward compatibility alias
+GeminiHandler = AIHandler
