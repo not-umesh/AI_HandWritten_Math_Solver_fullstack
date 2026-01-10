@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // 🔴 IMPORTANT: Replace this with your Render backend URL after deployment
-const API_BASE_URL = 'https://your-app-name.onrender.com';
+const API_BASE_URL = 'https://ai-handwritten-math-solver-fullstack.onrender.com';
 
 // For local development, use:
 // const API_BASE_URL = 'http://localhost:5000';
