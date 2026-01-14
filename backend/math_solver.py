@@ -324,8 +324,36 @@ class MathSolver:
                 }
             
             for sol in real_solutions:
-                steps.append(f"✅ {var} = {simplify(sol)}")
+                # Keep simplified solution for final answer check
+                pass
             
+            # --- Try Detailed Step Generation ---
+            detailed_steps = []
+            
+            # Linear Equation Check: ax + b = c
+            if len(real_solutions) == 1 and not equation.has(I):
+                try:
+                    detailed_steps = self._solve_linear_steps(left, right, var)
+                except Exception as e:
+                    print(f"Linear step generation failed: {e}")
+            
+            # Quadratic Equation Check: ax^2 + bx + c = 0
+            # Check if degree is 2
+            try:
+                poly = (left - right).as_poly(var)
+                if poly and poly.degree() == 2:
+                    detailed_steps = self._solve_quadratic_steps(left, right, var)
+            except Exception as e:
+                print(f"Quadratic step generation failed: {e}")
+            
+            # Use detailed steps if available, otherwise fallback to simple steps
+            if detailed_steps:
+                steps = detailed_steps
+            else:
+                # Fallback to simple verification steps
+                for sol in real_solutions:
+                    steps.append(f"✅ {var} = {simplify(sol)}")
+
             if len(real_solutions) == 1:
                 answer = f"{var} = {simplify(real_solutions[0])}"
                 eq_type = 'linear'
@@ -340,6 +368,86 @@ class MathSolver:
                 'type': eq_type,
                 'is_impossible': False
             }
+
+    def _solve_linear_steps(self, left, right, var):
+        """Generate detailed steps for linear equation: ax + b = cx + d"""
+        steps = []
+        steps.append(f"🔍 Goal: Isolate {var} on one side.")
+        
+        # 1. Move variable terms to left
+        # expanding helps catch things like 2(x+1)
+        expr = simplify(left - right)
+        
+        # Extract coefficients: form Ax + B = 0 -> Ax = -B
+        poly = expr.as_poly(var)
+        if not poly:
+            return steps
+            
+        coeffs = poly.all_coeffs()
+        if len(coeffs) != 2:
+            return steps # Not strictly linear ax+b
+            
+        a, b = coeffs[0], coeffs[1] 
+        # Equation is now ax + b = 0 => ax = -b
+        
+        steps.append(f"📐 Rearrange terms to group {var}:")
+        steps.append(f"   {simplify(a*var)} = {simplify(-b)}")
+        
+        if a != 1:
+            steps.append(f"➗ Divide both sides by {a}:")
+            ratio = simplify(-b / a)
+            steps.append(f"   {var} = {ratio}")
+        
+        steps.append(f"✅ Final Answer: {var} = {simplify(-b/a)}")
+        return steps
+
+    def _solve_quadratic_steps(self, left, right, var):
+        """Generate detailed steps for quadratic equation: ax^2 + bx + c = 0"""
+        steps = []
+        steps.append(f"🔍 This is a quadratic equation in the form ax² + bx + c = 0")
+        
+        # Move everything to left side
+        eq_zero = simplify(left - right)
+        steps.append(f"1️⃣ Standard Form: {eq_zero} = 0")
+        
+        poly = eq_zero.as_poly(var)
+        if not poly: return steps
+        
+        coeffs = poly.all_coeffs()
+        if len(coeffs) != 3: return steps
+        
+        a, b, c = coeffs[0], coeffs[1], coeffs[2]
+        
+        steps.append(f"2️⃣ Identify Coefficients:\n   a = {a}, b = {b}, c = {c}")
+        
+        # Discriminant
+        disc = b**2 - 4*a*c
+        steps.append(f"3️⃣ Calculate Discriminant (Δ):\n   Δ = b² - 4ac")
+        steps.append(f"   Δ = ({b})² - 4({a})({c})")
+        steps.append(f"   Δ = {disc}")
+        
+        if disc > 0:
+            steps.append(f"   Since Δ > 0, there are 2 real solutions.")
+        elif disc == 0:
+            steps.append(f"   Since Δ = 0, there is 1 real solution.")
+        else:
+            steps.append(f"   Since Δ < 0, solutions are complex (imaginary).")
+            
+        steps.append(f"4️⃣ Quadratic Formula:")
+        steps.append(f"   x = (-b ± √Δ) / 2a")
+        
+        x1 = (-b + sqrt(disc)) / (2*a)
+        x2 = (-b - sqrt(disc)) / (2*a)
+        
+        steps.append(f"   x = ({-b} ± √{disc}) / {2*a}")
+        
+        if disc >= 0:
+            sqrt_disc = sqrt(disc)
+            if sqrt_disc == int(sqrt_disc):
+                # Perfect square, show simplified math
+                steps.append(f"   x = ({-b} ± {int(sqrt_disc)}) / {2*a}")
+        
+        return steps
             
         except Exception as e:
             return {
