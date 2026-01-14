@@ -257,6 +257,15 @@ class MathSolver:
     def _preprocess(self, eq):
         if not eq:
             return ""
+        
+        # Normalize Unicode superscripts
+        superscripts = {
+            '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
+            '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9'
+        }
+        for char, digit in superscripts.items():
+            eq = eq.replace(char, f'**{digit}')
+            
         eq = eq.replace('^', '**')
         eq = eq.replace('×', '*').replace('÷', '/')
         eq = eq.replace('−', '-').replace('—', '-')
