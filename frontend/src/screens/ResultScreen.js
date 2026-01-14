@@ -260,8 +260,8 @@ Solved by AI Math Solver 🤖
                         {currentExplanation && (
                             <GlassCard style={styles.explanationCard} variant="primary">
                                 <Text style={styles.cardLabel}>
-                                    {explanationMode === 'eli5' ? '🧸' :
-                                        explanationMode === 'eli10' ? '🚲' : '💡'} Explanation
+                                    {explanationMode === 'grade8' ? '📚' :
+                                        explanationMode === 'grade10' ? '📖' : '🎓'} Explanation
                                 </Text>
                                 <Text style={styles.explanationText}>
                                     {isLoadingExplanation ? 'Loading...' : currentExplanation}

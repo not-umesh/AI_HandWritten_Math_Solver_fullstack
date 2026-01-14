@@ -205,37 +205,54 @@ class MathSolver:
         return mistakes
     
     def _generate_explanation(self, eq, result, mode):
-        """Generate explanation based on mode"""
+        """Generate explanation based on grade level mode"""
         eq_type = result.get('type', 'default')
         answer = result.get('answer', '')
+        steps = result.get('steps', [])
         
-        if mode == 'eli5':
-            template = ELI5_TEMPLATES.get(eq_type, ELI5_TEMPLATES['default'])
-            var = 'x' if 'x' in eq else 'something'
+        if mode == 'grade8':
+            template = GRADE8_TEMPLATES.get(eq_type, GRADE8_TEMPLATES['default'])
+            var = 'x' if 'x' in eq else 'the unknown'
             
             if eq_type == 'linear':
-                story = f"Each box has the same number of toys inside. We found that each box has {answer.split('=')[-1].strip() if '=' in answer else answer} toys!"
+                story = f"We found that {answer}. Think of it like finding how many chocolates each person gets when sharing equally!"
+            elif eq_type == 'quadratic':
+                story = f"The answer is {answer}. Like finding when a ball thrown up comes back down!"
             elif eq_type == 'arithmetic':
-                story = f"When we count all our toys together, we get {answer}!"
+                story = f"That gives us {answer}. Just like adding up your test scores!"
             else:
-                story = f"After our adventure, we discovered the answer is {answer}!"
+                story = f"Working through it step by step, we get {answer}."
             
             return template.format(var=var, story=story)
         
-        elif mode == 'eli10':
-            template = ELI10_TEMPLATES.get(eq_type, ELI10_TEMPLATES['default'])
+        elif mode == 'grade10':
+            template = GRADE10_TEMPLATES.get(eq_type, GRADE10_TEMPLATES['default'])
             
             if eq_type == 'linear':
-                story = f"If we share equally, each person gets {answer.split('=')[-1].strip() if '=' in answer else answer}."
+                story = f"By isolating the variable, we get {answer}."
             elif eq_type == 'quadratic':
-                story = f"Like finding when a ball reaches the ground - the answer is {answer}."
+                story = f"Applying the quadratic formula or factoring, {answer}."
+            elif eq_type == 'arithmetic':
+                story = f"Following order of operations, the result is {answer}."
             else:
-                story = f"Working through the math step by step, we find {answer}."
+                story = f"Solving systematically gives us {answer}."
             
             return template.format(story=story)
         
-        else:
-            return result.get('explanation', 'Solved successfully.')
+        elif mode == 'grade12':
+            template = GRADE12_TEMPLATES.get(eq_type, GRADE12_TEMPLATES['default'])
+            
+            if eq_type == 'linear':
+                story = f"Solution: {answer}. Verification: substituting back confirms the solution."
+            elif eq_type == 'quadratic':
+                story = f"Roots obtained: {answer}. The discriminant determines the nature of solutions."
+            else:
+                story = f"Mathematical analysis yields {answer}."
+            
+            return template.format(story=story)
+        
+        else:  # standard/default
+            return result.get('explanation', f'Solution: {answer}')
     
     def _preprocess(self, eq):
         if not eq:
