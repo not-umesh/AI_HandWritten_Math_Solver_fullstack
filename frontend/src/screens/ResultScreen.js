@@ -19,7 +19,7 @@ import ExplanationToggle from '../components/ExplanationToggle';
 import AnswerToggle from '../components/AnswerToggle';
 import ImpossibleWarning from '../components/ImpossibleWarning';
 import ChalkAnimation from '../components/ChalkAnimation';
-import AnimationControls from '../components/AnimationControls';
+
 import BlackboardExport from '../components/BlackboardExport';
 import { solveTextEquation } from '../services/api';
 import { saveSolution } from '../services/historyStorage';
@@ -29,10 +29,7 @@ const ResultScreen = ({ navigation, route }) => {
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(50)).current;
 
-    // Animation controls state
-    const [isPlaying, setIsPlaying] = useState(true);
-    const [speed, setSpeed] = useState(1);
-    const [isMuted, setIsMuted] = useState(false);
+
 
     // Explanation mode state
     const [explanationMode, setExplanationMode] = useState('grade10');
@@ -290,17 +287,7 @@ Solved by AI Math Solver 🤖
                 </Animated.View>
             </ScrollView>
 
-            {/* Animation Controls (floating) */}
-            {result.steps && result.steps.length > 0 && (
-                <AnimationControls
-                    isPlaying={isPlaying}
-                    onPlayPause={() => setIsPlaying(!isPlaying)}
-                    speed={speed}
-                    onSpeedChange={setSpeed}
-                    isMuted={isMuted}
-                    onMuteToggle={() => setIsMuted(!isMuted)}
-                />
-            )}
+
 
             {/* Export Modal */}
             <Modal
