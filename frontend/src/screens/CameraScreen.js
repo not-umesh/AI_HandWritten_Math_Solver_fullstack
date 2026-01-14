@@ -1,4 +1,10 @@
-import React, { useState, useRef, useEffect } from 'react';
+/**
+ * CameraScreen - Updated for Expo SDK 54+
+ * Uses CameraView and useCameraPermissions hook
+ * Built with 💻 by UV
+ */
+
+import React, { useState, useRef } from 'react';
 import {
     View,
     Text,
@@ -6,8 +12,9 @@ import {
     TouchableOpacity,
     Image,
     Alert,
+    Platform,
 } from 'react-native';
-import { Camera } from 'expo-camera';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -17,23 +24,20 @@ import LoadingOverlay from '../components/LoadingOverlay';
 import { solveEquation } from '../services/api';
 
 const CameraScreen = ({ navigation, route }) => {
-    const [hasPermission, setHasPermission] = useState(null);
+    // SDK 54+ uses useCameraPermissions hook
+    const [permission, requestPermission] = useCameraPermissions();
     const [capturedImage, setCapturedImage] = useState(null);
     const [loading, setLoading] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
     const cameraRef = useRef(null);
     const pickFromGallery = route.params?.pickFromGallery;
 
-    useEffect(() => {
-        (async () => {
-            const { status } = await Camera.requestCameraPermissionsAsync();
-            setHasPermission(status === 'granted');
-
-            if (pickFromGallery) {
-                pickImage();
-            }
-        })();
-    }, []);
+    // Auto-pick from gallery if navigated with that option
+    React.useEffect(() => {
+        if (pickFromGallery) {
+            pickImage();
+        }
+    }, [pickFromGallery]);
 
     const takePicture = async () => {
         if (cameraRef.current) {
@@ -44,13 +48,22 @@ const CameraScreen = ({ navigation, route }) => {
                 });
                 setCapturedImage(photo);
             } catch (error) {
-                Alert.alert('Error', 'Failed to take picture');
+                console.error('Camera error:', error);
+                Alert.alert('Error', 'Failed to take picture. Please try again.');
             }
         }
     };
 
     const pickImage = async () => {
         try {
+            // Request media library permission
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('Permission Required', 'Please allow access to your photos to use this feature.');
+                if (pickFromGallery) navigation.goBack();
+                return;
+            }
+
             const result = await ImagePicker.launchImageLibraryAsync({
                 mediaTypes: ImagePicker.MediaTypeOptions.Images,
                 quality: 0.5,
@@ -66,7 +79,9 @@ const CameraScreen = ({ navigation, route }) => {
                 navigation.goBack();
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to pick image');
+            console.error('Image picker error:', error);
+            Alert.alert('Error', 'Failed to pick image. Please try again.');
+            if (pickFromGallery) navigation.goBack();
         }
     };
 
@@ -98,6 +113,7 @@ const CameraScreen = ({ navigation, route }) => {
                 );
             }
         } catch (error) {
+            console.error('Process error:', error);
             Alert.alert(
                 'Error',
                 'Failed to process image. Please check your connection and try again.',
@@ -112,32 +128,52 @@ const CameraScreen = ({ navigation, route }) => {
         setCapturedImage(null);
     };
 
-    if (hasPermission === null) {
+    // Permission loading state
+    if (!permission) {
         return (
             <LinearGradient
                 colors={[COLORS.gradientStart, COLORS.gradientMiddle, COLORS.gradientEnd]}
                 style={styles.container}
             >
-                <Text style={styles.permissionText}>Requesting camera permission...</Text>
+                <Text style={styles.permissionText}>Loading camera...</Text>
             </LinearGradient>
         );
     }
 
-    if (hasPermission === false) {
+    // Permission not granted - show request button
+    if (!permission.granted) {
         return (
             <LinearGradient
                 colors={[COLORS.gradientStart, COLORS.gradientMiddle, COLORS.gradientEnd]}
                 style={styles.container}
             >
-                <Ionicons name="camera-off" size={60} color={COLORS.error} />
-                <Text style={styles.permissionText}>Camera access denied</Text>
-                <GlassButton
-                    title="Go Back"
-                    icon="arrow-back"
-                    variant="secondary"
-                    onPress={() => navigation.goBack()}
-                    style={{ marginTop: 20 }}
-                />
+                <View style={styles.permissionContainer}>
+                    <Ionicons name="camera" size={60} color={COLORS.primary} />
+                    <Text style={styles.permissionTitle}>Camera Access Needed</Text>
+                    <Text style={styles.permissionText}>
+                        We need camera access to scan your equations
+                    </Text>
+                    <GlassButton
+                        title="Grant Permission"
+                        icon="checkmark-circle"
+                        variant="primary"
+                        onPress={requestPermission}
+                        style={{ marginTop: 20, marginBottom: 15 }}
+                    />
+                    <GlassButton
+                        title="Pick from Gallery Instead"
+                        icon="images"
+                        variant="secondary"
+                        onPress={pickImage}
+                        style={{ marginBottom: 15 }}
+                    />
+                    <GlassButton
+                        title="Go Back"
+                        icon="arrow-back"
+                        variant="secondary"
+                        onPress={() => navigation.goBack()}
+                    />
+                </View>
             </LinearGradient>
         );
     }
@@ -184,12 +220,11 @@ const CameraScreen = ({ navigation, route }) => {
                     </View>
                 </View>
             ) : (
-                // Camera mode
-                <Camera
+                // Camera mode - Using CameraView for SDK 54+
+                <CameraView
                     ref={cameraRef}
                     style={styles.camera}
-                    type={Camera.Constants.Type.back}
-                    ratio="16:9"
+                    facing="back"
                 >
                     {/* Back button */}
                     <TouchableOpacity
@@ -245,7 +280,7 @@ const CameraScreen = ({ navigation, route }) => {
                             <View style={styles.placeholderButton} />
                         </LinearGradient>
                     </View>
-                </Camera>
+                </CameraView>
             )}
 
             <LoadingOverlay visible={loading} message={loadingMessage} />
@@ -261,9 +296,27 @@ const styles = StyleSheet.create({
     camera: {
         flex: 1,
     },
+    permissionContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 40,
+    },
+    permissionTitle: {
+        color: COLORS.white,
+        fontSize: 24,
+        fontWeight: 'bold',
+        marginTop: 20,
+        marginBottom: 10,
+    },
+    permissionText: {
+        color: COLORS.textSecondary,
+        fontSize: 16,
+        textAlign: 'center',
+    },
     backButton: {
         position: 'absolute',
-        top: 50,
+        top: Platform.OS === 'ios' ? 60 : 40,
         left: 20,
         zIndex: 10,
     },
@@ -344,7 +397,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-around',
         alignItems: 'center',
         paddingVertical: 40,
-        paddingBottom: 50,
+        paddingBottom: Platform.OS === 'ios' ? 50 : 40,
     },
     galleryButton: {
         width: 50,
@@ -377,12 +430,6 @@ const styles = StyleSheet.create({
         width: 50,
         height: 50,
     },
-    permissionText: {
-        color: COLORS.white,
-        fontSize: 18,
-        textAlign: 'center',
-        marginTop: 20,
-    },
     previewContainer: {
         flex: 1,
     },
@@ -398,7 +445,7 @@ const styles = StyleSheet.create({
     },
     previewGradient: {
         paddingTop: 60,
-        paddingBottom: 50,
+        paddingBottom: Platform.OS === 'ios' ? 50 : 40,
         paddingHorizontal: 20,
         alignItems: 'center',
     },
