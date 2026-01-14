@@ -75,7 +75,7 @@ const HomeScreen = ({ navigation }) => {
                         <View style={styles.header}>
                             <View style={styles.logoContainer}>
                                 <LinearGradient
-                                    colors={[COLORS.primary, COLORS.secondary]}
+                                    colors={[COLORS.primary, COLORS.chalkBlue]}
                                     style={styles.logoGradient}
                                 >
                                     <Ionicons name="calculator" size={40} color={COLORS.white} />
@@ -86,24 +86,33 @@ const HomeScreen = ({ navigation }) => {
                                 Solve handwritten equations instantly
                             </Text>
 
-                            {/* Server status */}
-                            <View style={styles.statusContainer}>
-                                <View
-                                    style={[
-                                        styles.statusDot,
-                                        {
-                                            backgroundColor:
-                                                serverStatus === 'online'
-                                                    ? COLORS.success
-                                                    : serverStatus === 'offline'
-                                                        ? COLORS.error
-                                                        : COLORS.accent,
-                                        },
-                                    ]}
-                                />
-                                <Text style={styles.statusText}>
-                                    Server: {serverStatus}
-                                </Text>
+                            {/* Status badges row */}
+                            <View style={styles.statusRow}>
+                                {/* Offline Ready Badge */}
+                                <View style={styles.offlineBadge}>
+                                    <Ionicons name="shield-checkmark" size={14} color={COLORS.chalkGreen} />
+                                    <Text style={styles.offlineBadgeText}>⚡ Offline Ready</Text>
+                                </View>
+
+                                {/* Server status */}
+                                <View style={styles.statusContainer}>
+                                    <View
+                                        style={[
+                                            styles.statusDot,
+                                            {
+                                                backgroundColor:
+                                                    serverStatus === 'online'
+                                                        ? COLORS.success
+                                                        : serverStatus === 'offline'
+                                                            ? COLORS.error
+                                                            : COLORS.accent,
+                                            },
+                                        ]}
+                                    />
+                                    <Text style={styles.statusText}>
+                                        Server: {serverStatus}
+                                    </Text>
+                                </View>
                             </View>
                         </View>
 
@@ -128,6 +137,35 @@ const HomeScreen = ({ navigation }) => {
                             />
                         </View>
 
+                        {/* Tools Row */}
+                        <View style={styles.toolsRow}>
+                            <TouchableOpacity
+                                style={styles.toolButton}
+                                onPress={() => navigation.navigate('Graph')}
+                            >
+                                <LinearGradient
+                                    colors={['rgba(236, 72, 153, 0.2)', 'rgba(236, 72, 153, 0.1)']}
+                                    style={styles.toolButtonGradient}
+                                >
+                                    <Ionicons name="analytics" size={24} color="#EC4899" />
+                                    <Text style={styles.toolButtonText}>Graph Plotter</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                                style={styles.toolButton}
+                                onPress={() => navigation.navigate('History')}
+                            >
+                                <LinearGradient
+                                    colors={['rgba(96, 165, 250, 0.2)', 'rgba(96, 165, 250, 0.1)']}
+                                    style={styles.toolButtonGradient}
+                                >
+                                    <Ionicons name="folder-open" size={24} color="#60A5FA" />
+                                    <Text style={styles.toolButtonText}>History</Text>
+                                </LinearGradient>
+                            </TouchableOpacity>
+                        </View>
+
                         {/* Text input section */}
                         <GlassCard style={styles.inputCard}>
                             <Text style={styles.inputLabel}>Or type your equation:</Text>
@@ -147,7 +185,7 @@ const HomeScreen = ({ navigation }) => {
                                     disabled={!textEquation.trim()}
                                 >
                                     <LinearGradient
-                                        colors={[COLORS.primary, COLORS.secondary]}
+                                        colors={[COLORS.primary, COLORS.chalkBlue]}
                                         style={styles.sendButtonGradient}
                                     >
                                         <Ionicons name="send" size={20} color={COLORS.white} />
@@ -158,22 +196,28 @@ const HomeScreen = ({ navigation }) => {
 
                         {/* Features */}
                         <View style={styles.features}>
-                            <Text style={styles.featuresTitle}>✨ Features</Text>
+                            <Text style={styles.featuresTitle}>✨ Premium Features</Text>
                             <View style={styles.featuresList}>
                                 <FeatureItem icon="scan" text="AI-powered handwriting recognition" />
-                                <FeatureItem icon="git-branch" text="Step-by-step solutions" />
-                                <FeatureItem icon="school" text="Detailed explanations" />
-                                <FeatureItem icon="flash" text="Instant results" />
+                                <FeatureItem icon="brush" text="Chalk animation replay" />
+                                <FeatureItem icon="school" text="8th/10th/12th grade explanations" />
+                                <FeatureItem icon="analytics" text="Interactive graph plotter" />
+                                <FeatureItem icon="folder-open" text="Auto-organized history" />
+                                <FeatureItem icon="warning" text="Common mistake detector" />
+                                <FeatureItem icon="image" text="Export as blackboard image" />
                             </View>
                         </View>
 
-                        {/* About / Credits */}
+                        {/* About / Credits - // Built with {} by UV */}
                         <View style={styles.credits}>
+                            <Text style={styles.creditsSlogan}>
+                                {'{ built_with_caffeine: true }'}
+                            </Text>
                             <Text style={styles.creditsNames}>
-                                crafted by Umesh & Vijay
+                                UV — Umesh & Vijay
                             </Text>
                             <Text style={styles.creditsCopyright}>
-                                © 2026 U&V Labs
+                                © 2026 • v2.0.0
                             </Text>
                         </View>
                     </Animated.View>
@@ -240,12 +284,33 @@ const styles = StyleSheet.create({
         color: COLORS.textSecondary,
         marginTop: 8,
     },
-    statusContainer: {
+    statusRow: {
         flexDirection: 'row',
         alignItems: 'center',
         marginTop: 15,
-        paddingHorizontal: 15,
-        paddingVertical: 8,
+        gap: 10,
+    },
+    offlineBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        backgroundColor: 'rgba(74, 222, 128, 0.15)',
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(74, 222, 128, 0.3)',
+        gap: 6,
+    },
+    offlineBadgeText: {
+        color: COLORS.chalkGreen,
+        fontSize: 12,
+        fontWeight: '600',
+    },
+    statusContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
         backgroundColor: 'rgba(255,255,255,0.1)',
         borderRadius: 20,
     },
@@ -343,6 +408,38 @@ const styles = StyleSheet.create({
         fontSize: 11,
         marginTop: 6,
         opacity: 0.7,
+    },
+    creditsSlogan: {
+        color: COLORS.chalkGreen,
+        fontSize: 12,
+        fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+        marginBottom: 4,
+        opacity: 0.8,
+    },
+    toolsRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 20,
+    },
+    toolButton: {
+        flex: 1,
+        borderRadius: 12,
+        overflow: 'hidden',
+    },
+    toolButtonGradient: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        paddingVertical: 14,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: COLORS.glassBorder,
+    },
+    toolButtonText: {
+        color: COLORS.textPrimary,
+        fontSize: 14,
+        fontWeight: '500',
     },
 });
 

@@ -26,10 +26,11 @@ export const solveEquation = async (base64Image) => {
     }
 };
 
-export const solveTextEquation = async (equation) => {
+export const solveTextEquation = async (equation, explanationMode = 'standard') => {
     try {
         const response = await api.post('/solve-text', {
             equation: equation,
+            explanation_mode: explanationMode,
         });
         return response.data;
     } catch (error) {

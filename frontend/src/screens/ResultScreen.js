@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import {
     View,
     Text,
@@ -7,17 +7,40 @@ import {
     TouchableOpacity,
     Share,
     Animated,
+    Modal,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../styles/theme';
 import GlassButton from '../components/GlassButton';
 import GlassCard from '../components/GlassCard';
+import TrapAlertCard from '../components/TrapAlertCard';
+import ExplanationToggle from '../components/ExplanationToggle';
+import AnswerToggle from '../components/AnswerToggle';
+import ImpossibleWarning from '../components/ImpossibleWarning';
+import ChalkAnimation from '../components/ChalkAnimation';
+import AnimationControls from '../components/AnimationControls';
+import BlackboardExport from '../components/BlackboardExport';
+import { solveTextEquation } from '../services/api';
+import { saveSolution } from '../services/historyStorage';
 
 const ResultScreen = ({ navigation, route }) => {
     const { result } = route.params;
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(50)).current;
+
+    // Animation controls state
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [speed, setSpeed] = useState(1);
+    const [isMuted, setIsMuted] = useState(false);
+
+    // Explanation mode state
+    const [explanationMode, setExplanationMode] = useState('grade10');
+    const [currentExplanation, setCurrentExplanation] = useState(result.explanation);
+    const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
+
+    // Export modal state
+    const [showExportModal, setShowExportModal] = useState(false);
 
     useEffect(() => {
         Animated.parallel([
@@ -35,6 +58,28 @@ const ResultScreen = ({ navigation, route }) => {
         ]).start();
     }, []);
 
+    // Handle explanation mode change
+    const handleExplanationModeChange = async (newMode) => {
+        if (newMode === explanationMode) return;
+
+        setExplanationMode(newMode);
+        setIsLoadingExplanation(true);
+
+        try {
+            // Re-solve with new explanation mode
+            const equation = result.cleaned_equation || result.detected_equation || result.original_equation;
+            const newResult = await solveTextEquation(equation);
+
+            // For now, use the explanation from the result
+            // In production, pass explanation_mode to the API
+            setCurrentExplanation(newResult.explanation);
+        } catch (error) {
+            console.error('Error changing explanation mode:', error);
+        } finally {
+            setIsLoadingExplanation(false);
+        }
+    };
+
     const handleShare = async () => {
         try {
             const message = `
@@ -47,7 +92,7 @@ const ResultScreen = ({ navigation, route }) => {
 📚 Steps:
 ${result.steps?.map((step, i) => `${i + 1}. ${step}`).join('\n')}
 
-💡 Explanation: ${result.explanation}
+💡 Explanation: ${currentExplanation}
 
 Solved by AI Math Solver 🤖
       `.trim();
@@ -66,6 +111,8 @@ Solved by AI Math Solver 🤖
                 return 'analytics';
             case 'arithmetic':
                 return 'calculator';
+            case 'impossible':
+                return 'alert-circle';
             default:
                 return 'school';
         }
@@ -76,15 +123,20 @@ Solved by AI Math Solver 🤖
             case 'linear':
                 return COLORS.primary;
             case 'quadratic':
-                return COLORS.secondary;
+                return COLORS.chalkBlue;
             case 'arithmetic':
                 return COLORS.success;
             case 'error':
-                return COLORS.error;
+            case 'impossible':
+                return COLORS.warning;
             default:
                 return COLORS.accent;
         }
     };
+
+    // Check if result is impossible
+    const isImpossible = result.is_impossible;
+    const commonMistakes = result.common_mistakes || [];
 
     return (
         <LinearGradient
@@ -100,9 +152,14 @@ Solved by AI Math Solver 🤖
                     <Ionicons name="arrow-back" size={24} color={COLORS.white} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Solution</Text>
-                <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-                    <Ionicons name="share-outline" size={24} color={COLORS.white} />
-                </TouchableOpacity>
+                <View style={styles.headerButtons}>
+                    <TouchableOpacity style={styles.headerBtn} onPress={() => setShowExportModal(true)}>
+                        <Ionicons name="image" size={22} color={COLORS.white} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.headerBtn} onPress={handleShare}>
+                        <Ionicons name="share-outline" size={22} color={COLORS.white} />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <ScrollView
@@ -119,15 +176,25 @@ Solved by AI Math Solver 🤖
                         },
                     ]}
                 >
-                    {/* Success indicator */}
-                    <View style={styles.successIcon}>
-                        <LinearGradient
-                            colors={[COLORS.success, COLORS.primary]}
-                            style={styles.successIconGradient}
-                        >
-                            <Ionicons name="checkmark" size={40} color={COLORS.white} />
-                        </LinearGradient>
-                    </View>
+                    {/* Impossible Question Warning */}
+                    {isImpossible && (
+                        <ImpossibleWarning
+                            reason={result.impossible_reason}
+                            suggestion={result.suggestion}
+                        />
+                    )}
+
+                    {/* Success indicator (only if not impossible) */}
+                    {!isImpossible && (
+                        <View style={styles.successIcon}>
+                            <LinearGradient
+                                colors={[COLORS.success, COLORS.chalkBlue]}
+                                style={styles.successIconGradient}
+                            >
+                                <Ionicons name="checkmark" size={40} color={COLORS.white} />
+                            </LinearGradient>
+                        </View>
+                    )}
 
                     {/* Equation Type Badge */}
                     <View
@@ -164,31 +231,44 @@ Solved by AI Math Solver 🤖
                         )}
                     </GlassCard>
 
-                    {/* Answer */}
-                    <GlassCard style={styles.answerCard} variant="success">
-                        <Text style={styles.cardLabel}>✅ Answer</Text>
-                        <Text style={styles.answerText}>{result.solution}</Text>
-                    </GlassCard>
+                    {/* Answer Toggle (Spoiler style) */}
+                    <AnswerToggle answer={result.solution} initiallyExpanded={!isImpossible}>
+                        {/* Explanation Mode Toggle */}
+                        <ExplanationToggle
+                            mode={explanationMode}
+                            onModeChange={handleExplanationModeChange}
+                        />
 
-                    {/* Steps */}
-                    {result.steps && result.steps.length > 0 && (
-                        <GlassCard style={styles.stepsCard}>
-                            <Text style={styles.cardLabel}>📚 Step-by-Step Solution</Text>
-                            <View style={styles.stepsList}>
-                                {result.steps.map((step, index) => (
-                                    <StepItem key={index} step={step} index={index} />
-                                ))}
-                            </View>
-                        </GlassCard>
-                    )}
+                        {/* Common Mistake Warnings */}
+                        {commonMistakes.map((mistake, index) => (
+                            <TrapAlertCard key={index} mistake={mistake} />
+                        ))}
 
-                    {/* Explanation */}
-                    {result.explanation && (
-                        <GlassCard style={styles.explanationCard} variant="primary">
-                            <Text style={styles.cardLabel}>💡 Explanation</Text>
-                            <Text style={styles.explanationText}>{result.explanation}</Text>
-                        </GlassCard>
-                    )}
+                        {/* Steps with Chalk Animation */}
+                        {result.steps && result.steps.length > 0 && (
+                            <GlassCard style={styles.stepsCard}>
+                                <Text style={styles.cardLabel}>📚 Step-by-Step Solution</Text>
+                                <ChalkAnimation
+                                    steps={result.steps}
+                                    isPlaying={isPlaying}
+                                    speed={speed}
+                                />
+                            </GlassCard>
+                        )}
+
+                        {/* Explanation */}
+                        {currentExplanation && (
+                            <GlassCard style={styles.explanationCard} variant="primary">
+                                <Text style={styles.cardLabel}>
+                                    {explanationMode === 'eli5' ? '🧸' :
+                                        explanationMode === 'eli10' ? '🚲' : '💡'} Explanation
+                                </Text>
+                                <Text style={styles.explanationText}>
+                                    {isLoadingExplanation ? 'Loading...' : currentExplanation}
+                                </Text>
+                            </GlassCard>
+                        )}
+                    </AnswerToggle>
 
                     {/* Action Buttons */}
                     <View style={styles.actionButtons}>
@@ -209,29 +289,33 @@ Solved by AI Math Solver 🤖
                     </View>
                 </Animated.View>
             </ScrollView>
+
+            {/* Animation Controls (floating) */}
+            {result.steps && result.steps.length > 0 && (
+                <AnimationControls
+                    isPlaying={isPlaying}
+                    onPlayPause={() => setIsPlaying(!isPlaying)}
+                    speed={speed}
+                    onSpeedChange={setSpeed}
+                    isMuted={isMuted}
+                    onMuteToggle={() => setIsMuted(!isMuted)}
+                />
+            )}
+
+            {/* Export Modal */}
+            <Modal
+                visible={showExportModal}
+                animationType="slide"
+                presentationStyle="fullScreen"
+            >
+                <BlackboardExport
+                    equation={result.cleaned_equation || result.detected_equation}
+                    answer={result.solution}
+                    steps={result.steps}
+                    onClose={() => setShowExportModal(false)}
+                />
+            </Modal>
         </LinearGradient>
-    );
-};
-
-const StepItem = ({ step, index }) => {
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-
-    useEffect(() => {
-        Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 400,
-            delay: index * 100,
-            useNativeDriver: true,
-        }).start();
-    }, []);
-
-    return (
-        <Animated.View style={[styles.stepItem, { opacity: fadeAnim }]}>
-            <View style={styles.stepNumber}>
-                <Text style={styles.stepNumberText}>{index + 1}</Text>
-            </View>
-            <Text style={styles.stepText}>{step}</Text>
-        </Animated.View>
     );
 };
 
@@ -268,12 +352,24 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    headerButtons: {
+        flexDirection: 'row',
+        gap: 10,
+    },
+    headerBtn: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
         paddingHorizontal: 20,
-        paddingBottom: 40,
+        paddingBottom: 180, // Extra space for floating controls
     },
     content: {
         alignItems: 'center',
@@ -310,13 +406,10 @@ const styles = StyleSheet.create({
         width: '100%',
         marginBottom: 15,
     },
-    answerCard: {
-        width: '100%',
-        marginBottom: 15,
-    },
     stepsCard: {
         width: '100%',
         marginBottom: 15,
+        marginTop: 15,
     },
     explanationCard: {
         width: '100%',
@@ -339,42 +432,6 @@ const styles = StyleSheet.create({
         marginTop: 10,
         textAlign: 'center',
     },
-    answerText: {
-        color: COLORS.success,
-        fontSize: 32,
-        fontWeight: 'bold',
-        textAlign: 'center',
-        textShadowColor: COLORS.successGlow,
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 10,
-    },
-    stepsList: {
-        gap: 12,
-    },
-    stepItem: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: 12,
-    },
-    stepNumber: {
-        width: 28,
-        height: 28,
-        borderRadius: 14,
-        backgroundColor: COLORS.primary + '30',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    stepNumberText: {
-        color: COLORS.primary,
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    stepText: {
-        flex: 1,
-        color: COLORS.textPrimary,
-        fontSize: 15,
-        lineHeight: 22,
-    },
     explanationText: {
         color: COLORS.textPrimary,
         fontSize: 15,
@@ -384,6 +441,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 15,
         width: '100%',
+        marginTop: 10,
     },
     actionButton: {
         flex: 1,

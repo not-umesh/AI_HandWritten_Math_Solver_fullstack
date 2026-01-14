@@ -1,8 +1,10 @@
-flask==3.0.0
-flask-cors==4.0.0
-gunicorn==21.2.0
-python-dotenv==1.0.0
-Pillow==10.4.0
-sympy==1.12
-google-generativeai==0.8.3
-requests==2.31.0
+# Built with 💻 by UV - "it works on my machine"
+flask>=3.0.0
+flask-cors>=4.0.0
+flask-limiter>=3.5.0
+gunicorn>=21.0.0
+python-dotenv>=1.0.0
+Pillow>=10.0.0
+sympy>=1.12
+google-generativeai>=0.8.0
+requests>=2.31.0

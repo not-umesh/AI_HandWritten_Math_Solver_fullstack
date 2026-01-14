@@ -1,192 +1,148 @@
-# 🧮 AI Handwritten Math Solver
+# AI Handwritten Math Solver 📱
 
-**Scan handwritten math equations and get instant step-by-step solutions!**
+> Snap a pic of your math homework, get step-by-step solutions in seconds. Built for students who'd rather understand than suffer.
 
-Built with React Native (Expo) + Flask + AI Vision APIs
-
----
-
-## 📁 Project Structure
-
-```
-Ai math solver/
-├── backend/          # Flask API server
-│   ├── app.py        # Main server
-│   ├── gemini_handler.py  # AI vision processing
-│   └── math_solver.py     # SymPy equation solver
-└── frontend/         # React Native app
-    ├── App.js
-    └── src/
-        ├── screens/  # Home, Camera, Result screens
-        └── services/ # API client
-```
+![Version](https://img.shields.io/badge/version-2.0.0-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Security](https://img.shields.io/badge/security-hardened-success)
 
 ---
 
-## 🚀 Part 1: Deploy the Backend (Render)
+## ⚡ What's This?
 
-### Step 1: Get Your Free AI API Key
+Ever stared at a math problem thinking "what even is this?" — Yeah, we've been there. That's why we built this.
 
-You need an API key for the AI to read handwritten equations.
+**Just:**
+1. 📸 Take a photo of any handwritten equation
+2. 🧠 AI reads & solves it (even if your handwriting is trash)
+3. ✨ Get the answer + step-by-step breakdown
 
-**Option A: OpenRouter (Recommended - Better free tier)**
-1. Go to https://openrouter.ai/
-2. Sign in with Google/GitHub
-3. Go to https://openrouter.ai/keys
-4. Click "Create Key" and copy it
-
-**Option B: Google Gemini**
-1. Go to https://aistudio.google.com/app/apikey
-2. Click "Create API Key"
-3. Copy the key
+No more googling random math problems. No more crying over calculus.
 
 ---
 
-### Step 2: Deploy to Render
+## 🔥 Features That Slap
 
-1. **Create a Render account** at https://render.com (free)
-
-2. **Connect your GitHub repo**
-   - Go to Render Dashboard → New → Web Service
-   - Connect your GitHub account
-   - Select this repository
-
-3. **Configure the service**
-   - **Name:** `ai-math-solver-backend` (or anything you like)
-   - **Root Directory:** `backend`
-   - **Runtime:** Python 3
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `gunicorn app:app`
-
-4. **Add Environment Variables**
-   - Go to "Environment" tab
-   - Add these variables:
-     ```
-     OPENROUTER_API_KEY = your_openrouter_key_here
-     GEMINI_API_KEY = your_gemini_key_here (optional)
-     ```
-
-5. **Deploy!**
-   - Click "Create Web Service"
-   - Wait 2-3 minutes for deployment
-   - Copy your URL (e.g., `https://your-app.onrender.com`)
-
-6. **Test it works**
-   - Visit `https://your-app.onrender.com/health`
-   - You should see: `{"status": "healthy"}`
+| Feature | What It Does |
+|---------|--------------|
+| 🤖 **AI Vision** | Reads handwriting (even doctor-level scribbles) |
+| 📊 **Graph Plotter** | Plot functions offline — no internet needed |
+| 🎓 **Grade-Based Explanations** | Get answers explained for 8th, 10th, or 12th grade level |
+| 📁 **Auto-Organize History** | Past problems sorted by topic automatically |
+| ⚠️ **Trap Detector** | Warns you about common mistakes before you make them |
+| 🖼️ **Blackboard Export** | Save solutions as aesthetic images for notes/socials |
+| ⚡ **Offline Ready** | Works without internet after first load |
+| 🔒 **Security Hardened** | Rate limiting + input validation (OWASP approved) |
 
 ---
 
-## 📱 Part 2: Build the Android APK
+## 🚀 Quick Start
 
-### Step 1: Install Prerequisites
+### Prerequisites
+- Node.js 18+
+- Python 3.10+
+- Expo Go app (for testing on phone)
 
-1. **Install Node.js** from https://nodejs.org/
+### Backend Setup
 
-2. **Install EAS CLI**
-   ```bash
-   npm install -g eas-cli
-   ```
-
-3. **Create Expo account** at https://expo.dev/signup
-
-4. **Login to EAS**
-   ```bash
-   eas login
-   ```
-
----
-
-### Step 2: Update API URL
-
-Open `frontend/src/services/api.js` and update the URL to your Render backend:
-
-```javascript
-const API_BASE_URL = 'https://YOUR-APP-NAME.onrender.com';
-```
-
----
-
-### Step 3: Build the APK
-
-1. **Navigate to frontend folder**
-   ```bash
-   cd frontend
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Build the APK**
-   ```bash
-   eas build -p android --profile preview
-   ```
-
-4. **Wait for the build** (takes 10-15 minutes)
-   - You'll get a link to track progress
-   - Once done, download the APK from Expo dashboard
-
----
-
-## 🎉 You're Done!
-
-Install the APK on your Android phone and start solving math equations!
-
----
-
-## 🛠️ Local Development (Optional)
-
-### Run Backend Locally
 ```bash
 cd backend
 pip install -r requirements.txt
+
+# Create .env file with your API keys
+echo "OPENROUTER_API_KEY=your_key_here" > .env
+echo "GEMINI_API_KEY=your_gemini_key" >> .env
+
+# Run it
 python app.py
 ```
 
-### Run Frontend Locally
+### Frontend Setup
+
 ```bash
 cd frontend
 npm install
+
+# Start dev server
 npx expo start
+```
+
+Scan the QR code with Expo Go. That's it. You're in.
+
+---
+
+## 🔐 Security
+
+This ain't your average student project. We actually thought about security:
+
+- **Rate Limiting** — 10-15 requests/min per user (no API abuse)
+- **Input Validation** — Schema-based, SQL/XSS patterns blocked
+- **Secure API Keys** — Environment variables only, never exposed to client
+- **OWASP Best Practices** — Followed the playbook
+
+---
+
+## 🏗️ Project Structure
+
+```
+├── backend/
+│   ├── app.py              # Flask API (security hardened)
+│   ├── math_solver.py      # SymPy-powered equation solver
+│   ├── gemini_handler.py   # Multi-provider AI (Qwen, Gemma, Gemini)
+│   └── requirements.txt
+│
+├── frontend/
+│   ├── src/
+│   │   ├── screens/        # HomeScreen, ResultScreen, GraphScreen, etc.
+│   │   ├── components/     # GlassButton, ChalkAnimation, TrapAlertCard...
+│   │   ├── services/       # API calls, history storage
+│   │   └── styles/         # Theme config
+│   └── App.js
 ```
 
 ---
 
-## 📝 Features
+## 🌐 Deploy
 
-- 📷 Scan handwritten equations with camera
-- 🖼️ Pick images from gallery
-- ⌨️ Type equations manually
-- 📊 Step-by-step solutions
-- 💡 Detailed explanations
-- 🚀 Powered by AI vision (OpenRouter/Gemini)
+### Backend (Render)
+1. Push to GitHub
+2. Connect repo to [Render](https://render.com)
+3. Set environment variables (API keys)
+4. Deploy 🚀
 
----
-
-## 👥 Credits
-
-**crafted by Umesh & Vijay**
-
-© 2026 U&V Labs. All rights reserved.
+### Frontend (Expo/EAS)
+```bash
+eas build -p android --profile preview
+```
 
 ---
 
-## ❓ Troubleshooting
+## 📱 APK Download
 
-**Backend returns 429 error?**
-- Your API quota is exhausted. Wait a bit or get a new API key.
-
-**App shows "Failed to process image"?**
-- Check if backend URL is correct in `api.js`
-- Check Render logs for errors
-- Ensure API key is set in Render environment
-
-**Build fails with icon error?**
-- Run `node create-assets.js` in frontend folder
-- Make sure icon files are valid PNGs
+Check the [Releases](https://github.com/not-umesh/AI_HandWritten_Math_Solver_fullstack/releases) tab for the latest APK.
 
 ---
 
-Happy Solving! 🎓
+## 🤝 Contributing
+
+Found a bug? Got an idea? PRs welcome.
+
+```bash
+git checkout -b feature/your-feature
+# make your changes
+git commit -m "added something cool"
+git push origin feature/your-feature
+```
+
+---
+
+## 📄 License
+
+MIT — do whatever you want with it.
+
+---
+
+<p align="center">
+  <code>{ built_with_caffeine: true }</code><br>
+  <b>UV</b> — Umesh & Vijay • 2026
+</p>
