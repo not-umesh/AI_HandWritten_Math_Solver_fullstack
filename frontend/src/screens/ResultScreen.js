@@ -245,11 +245,7 @@ Solved by AI Math Solver 🤖
                         {result.steps && result.steps.length > 0 && (
                             <GlassCard style={styles.stepsCard}>
                                 <Text style={styles.cardLabel}>📚 Step-by-Step Solution</Text>
-                                <ChalkAnimation
-                                    steps={result.steps}
-                                    isPlaying={isPlaying}
-                                    speed={speed}
-                                />
+                                <ChalkAnimation steps={result.steps} />
                             </GlassCard>
                         )}
 
