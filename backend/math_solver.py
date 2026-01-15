@@ -203,20 +203,34 @@ class MathSolver:
         if not eq:
             return ""
         
-        # Normalize Unicode superscripts
+        # Normalize Unicode superscripts - handle sequences like x³ or x²
         superscripts = {
-            '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
-            '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9'
+            '⁰': '**0', '¹': '**1', '²': '**2', '³': '**3', '⁴': '**4',
+            '⁵': '**5', '⁶': '**6', '⁷': '**7', '⁸': '**8', '⁹': '**9'
         }
-        for char, digit in superscripts.items():
-            eq = eq.replace(char, f'**{digit}')
-            
+        for char, replacement in superscripts.items():
+            eq = eq.replace(char, replacement)
+        
+        # Handle multiple consecutive superscripts (e.g., ²³ -> **23)
+        # Fix cases like **2**3 -> **23
+        eq = re.sub(r'\*\*(\d)\*\*(\d)', r'**\1\2', eq)
+        
+        # Standard replacements
         eq = eq.replace('^', '**')
         eq = eq.replace('×', '*').replace('÷', '/')
         eq = eq.replace('−', '-').replace('—', '-')
+        
+        # Add implicit multiplication: 2x -> 2*x
         eq = re.sub(r'(\d)([a-zA-Z])', r'\1*\2', eq)
+        # )( -> )*(
         eq = re.sub(r'\)\(', r')*(', eq)
+        # 2( -> 2*(
         eq = re.sub(r'(\d)\(', r'\1*(', eq)
+        # x( -> x*(  for variable followed by parenthesis
+        eq = re.sub(r'([a-zA-Z])\(', r'\1*(', eq)
+        # )x -> )*x for closing paren followed by variable
+        eq = re.sub(r'\)([a-zA-Z])', r')*\1', eq)
+        
         return eq.strip()
     
     def _solve_equation(self, equation_str):
