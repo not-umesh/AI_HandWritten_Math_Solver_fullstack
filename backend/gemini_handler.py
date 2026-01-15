@@ -88,7 +88,20 @@ class AIHandler:
                         'content': [
                             {
                                 'type': 'text',
-                                'text': 'Extract the math equation from this image. Return ONLY the equation, nothing else.'
+                                'text': '''Extract the math equation from this image. 
+
+IMPORTANT RULES:
+1. Pay attention to visual layout - horizontal lines indicate division/fractions
+2. If a fraction is followed by "+ something", only the numerator and denominator above/below the line are part of the fraction
+3. Terms next to a fraction (not under the line) are ADDED/SUBTRACTED separately
+4. Use parentheses to show the exact grouping
+5. Use ^ for exponents (e.g., x^3 for x cubed)
+
+Example: If you see a fraction with numerator "11+x", denominator "x³", followed by "+ 2x(5-x)"
+The correct format is: ((11+x)/x^3) + 2x(5-x)
+NOT: (11+x) / (x^3 + 2x(5-x))
+
+Return ONLY the equation in a single line, nothing else.'''
                             },
                             {
                                 'type': 'image_url',
@@ -99,7 +112,7 @@ class AIHandler:
                         ]
                     }
                 ],
-                'max_tokens': 100
+                'max_tokens': 150
             }
             
             response = requests.post(
@@ -139,7 +152,20 @@ class AIHandler:
             compressed = self._compress_image(image_bytes)
             image = Image.open(BytesIO(compressed))
             
-            prompt = "Extract the math equation. Return ONLY the equation."
+            prompt = '''Extract the math equation from this image.
+
+IMPORTANT RULES:
+1. Pay attention to visual layout - horizontal lines indicate division/fractions
+2. If a fraction is followed by "+ something", only the numerator and denominator above/below the line are part of the fraction
+3. Terms next to a fraction (not under the line) are ADDED/SUBTRACTED separately  
+4. Use parentheses to show the exact grouping
+5. Use ^ for exponents (e.g., x^3 for x cubed)
+
+Example: If you see a fraction with numerator "11+x", denominator "x³", followed by "+ 2x(5-x)"
+The correct format is: ((11+x)/x^3) + 2x(5-x)
+NOT: (11+x) / (x^3 + 2x(5-x))
+
+Return ONLY the equation in a single line.'''
             response = self.gemini_model.generate_content([prompt, image])
             
             del image
