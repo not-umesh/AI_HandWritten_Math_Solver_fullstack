@@ -52,28 +52,6 @@ COMMON_MISTAKES = {
     }
 }
 
-# Grade-based explanation templates
-GRADE8_TEMPLATES = {
-    'linear': "Think of {var} as an unknown number. {story}",
-    'quadratic': "Imagine a ball thrown in the air - it goes up, then comes down! {story}",
-    'arithmetic': "Just like calculating your marks! {story}",
-    'default': "Let's break this down step by step: {story}"
-}
-
-GRADE10_TEMPLATES = {
-    'linear': "We're isolating the variable by doing the same operation on both sides. {story}",
-    'quadratic': "Using the quadratic formula or factoring to find the roots. {story}",
-    'arithmetic': "Applying order of operations (BODMAS/PEMDAS). {story}",
-    'default': "Here's the mathematical approach: {story}"
-}
-
-GRADE12_TEMPLATES = {
-    'linear': "Solving by algebraic manipulation and verification. {story}",
-    'quadratic': "Analyzing discriminant and applying appropriate method. {story}",
-    'arithmetic': "Numerical computation with precision. {story}",
-    'default': "Mathematical analysis: {story}"
-}
-
 
 class MathSolver:
     def __init__(self):
@@ -90,10 +68,10 @@ class MathSolver:
             'i': I, 'I': I
         }
     
-    def solve(self, equation_str, explanation_mode='grade10'):
+    def solve(self, equation_str, explanation_mode='standard'):
         """
         Solve equation with enhanced features
-        explanation_mode: 'grade8', 'grade10', 'grade12'
+        explanation_mode: 'standard' (legacy argument, now ignored/optional)
         """
         try:
             equation_str = self._preprocess(equation_str)
@@ -114,11 +92,11 @@ class MathSolver:
             # Add mistake warnings
             result['common_mistakes'] = mistakes
             
-            # Generate explanation based on mode
+            # Generate explanation
             result['explanation'] = self._generate_explanation(
                 equation_str, result, explanation_mode
             )
-            result['explanation_mode'] = explanation_mode
+            result['explanation_mode'] = 'standard'
                 
             return result
                 
@@ -204,54 +182,21 @@ class MathSolver:
         
         return mistakes
     
-    def _generate_explanation(self, eq, result, mode):
-        """Generate explanation based on grade level mode"""
+    def _generate_explanation(self, eq, result, mode='standard'):
+        """Generate a standard explanation"""
         eq_type = result.get('type', 'default')
         answer = result.get('answer', '')
-        steps = result.get('steps', [])
         
-        if mode == 'grade8':
-            template = GRADE8_TEMPLATES.get(eq_type, GRADE8_TEMPLATES['default'])
-            var = 'x' if 'x' in eq else 'the unknown'
-            
-            if eq_type == 'linear':
-                story = f"We found that {answer}. Think of it like finding how many chocolates each person gets when sharing equally!"
-            elif eq_type == 'quadratic':
-                story = f"The answer is {answer}. Like finding when a ball thrown up comes back down!"
-            elif eq_type == 'arithmetic':
-                story = f"That gives us {answer}. Just like adding up your test scores!"
-            else:
-                story = f"Working through it step by step, we get {answer}."
-            
-            return template.format(var=var, story=story)
-        
-        elif mode == 'grade10':
-            template = GRADE10_TEMPLATES.get(eq_type, GRADE10_TEMPLATES['default'])
-            
-            if eq_type == 'linear':
-                story = f"By isolating the variable, we get {answer}."
-            elif eq_type == 'quadratic':
-                story = f"Applying the quadratic formula or factoring, {answer}."
-            elif eq_type == 'arithmetic':
-                story = f"Following order of operations, the result is {answer}."
-            else:
-                story = f"Solving systematically gives us {answer}."
-            
-            return template.format(story=story)
-        
-        elif mode == 'grade12':
-            template = GRADE12_TEMPLATES.get(eq_type, GRADE12_TEMPLATES['default'])
-            
-            if eq_type == 'linear':
-                story = f"Solution: {answer}. Verification: substituting back confirms the solution."
-            elif eq_type == 'quadratic':
-                story = f"Roots obtained: {answer}. The discriminant determines the nature of solutions."
-            else:
-                story = f"Mathematical analysis yields {answer}."
-            
-            return template.format(story=story)
-        
-        else:  # standard/default
+        # Standard templates based on equation type
+        if eq_type == 'linear':
+            return f"To solve this linear equation, we isolate the variable by performing the same operations on both sides until we get the final answer: {answer}."
+        elif eq_type == 'quadratic':
+            return f"This is a quadratic equation. We can solve it using the quadratic formula or factoring to find the roots: {answer}."
+        elif eq_type == 'arithmetic':
+            return f"By following the order of operations (PEMDAS/BODMAS), we calculate the expression to get: {answer}."
+        elif eq_type == 'verification':
+             return "We evaluate both sides of the equation to check if they are equal."
+        else:
             return result.get('explanation', f'Solution: {answer}')
     
     def _preprocess(self, eq):
@@ -304,7 +249,6 @@ class MathSolver:
             
             var = list(all_symbols)[0]
             steps.append(f"🔍 Solving for: {var}")
-            steps.append(f"📐 Rearranging equation to isolate {var}")
             
             solutions = solve(equation, var)
             
@@ -378,36 +322,103 @@ class MathSolver:
                 'is_impossible': False
             }
 
+        except Exception as e:
+            return {
+                'answer': f'Error: {str(e)}',
+                'steps': steps,
+                'explanation': 'Check equation format.',
+                'type': 'error',
+                'is_impossible': False
+            }
+
     def _solve_linear_steps(self, left, right, var):
-        """Generate detailed steps for linear equation: ax + b = cx + d"""
+        """Generate detailed educational steps for linear equation: ax + b = cx + d"""
         steps = []
-        steps.append(f"🔍 Goal: Isolate {var} on one side.")
+        step_num = 1
         
-        # 1. Move variable terms to left
-        # expanding helps catch things like 2(x+1)
-        expr = simplify(left - right)
+        # Store original expressions for display
+        original_left = left
+        original_right = right
         
-        # Extract coefficients: form Ax + B = 0 -> Ax = -B
-        poly = expr.as_poly(var)
-        if not poly:
-            return steps
+        steps.append(f"📝 Equation: {original_left} = {original_right}")
+        steps.append("")  # blank line for spacing
+        
+        # 1. Move variable terms to left if variable exists on right
+        right_poly = right.as_poly(var)
+        if right_poly and right_poly.degree() >= 1:
+            coeff_val = right.coeff(var)
+            term_to_move = coeff_val * var
             
-        coeffs = poly.all_coeffs()
-        if len(coeffs) != 2:
-            return steps # Not strictly linear ax+b
-            
-        a, b = coeffs[0], coeffs[1] 
-        # Equation is now ax + b = 0 => ax = -b
+            if term_to_move != 0:
+                # Determine operation text
+                if coeff_val > 0:
+                    op_text = f"subtracting {simplify(term_to_move)}"
+                else:
+                    op_text = f"adding {simplify(-term_to_move)}"
+                
+                steps.append(f"Step {step_num}: Move variable terms to one side by {op_text} from both sides")
+                steps.append(f"   {left} - ({simplify(term_to_move)}) = {right} - ({simplify(term_to_move)})")
+                
+                left = simplify(left - term_to_move)
+                right = simplify(right - term_to_move)
+                
+                steps.append(f"   {left} = {right}")
+                steps.append("")
+                step_num += 1
+
+        # 2. Move constant terms to right
+        left_poly = left.as_poly(var)
+        if left_poly:
+            l_coeffs = left_poly.all_coeffs()
+            if len(l_coeffs) == 2:  # ax + b form
+                constant = l_coeffs[1]
+                if constant != 0:
+                    # Determine operation text
+                    if constant > 0:
+                        op_text = f"subtracting {simplify(constant)}"
+                    else:
+                        op_text = f"adding {simplify(-constant)}"
+                    
+                    steps.append(f"Step {step_num}: Move constant terms to the other side by {op_text} from both sides")
+                    steps.append(f"   {left} - ({simplify(constant)}) = {right} - ({simplify(constant)})")
+                    
+                    left = simplify(left - constant)
+                    right = simplify(right - constant)
+                    
+                    steps.append(f"   {left} = {right}")
+                    steps.append("")
+                    step_num += 1
         
-        steps.append(f"📐 Rearrange terms to group {var}:")
-        steps.append(f"   {simplify(a*var)} = {simplify(-b)}")
+        # 3. Divide by coefficient to isolate variable
+        left_poly = left.as_poly(var)
+        if left_poly:
+            l_coeffs = left_poly.all_coeffs()
+            if len(l_coeffs) > 0:
+                coeff = l_coeffs[0]
+                if coeff != 1 and coeff != 0:
+                    steps.append(f"Step {step_num}: Isolate {var} by dividing both sides by {coeff}")
+                    steps.append(f"   {left}/{coeff} = {right}/{coeff}")
+                    
+                    right = simplify(right / coeff)
+                    
+                    steps.append(f"   {var} = {right}")
+                    steps.append("")
+                    step_num += 1
         
-        if a != 1:
-            steps.append(f"➗ Divide both sides by {a}:")
-            ratio = simplify(-b / a)
-            steps.append(f"   {var} = {ratio}")
+        # Final answer
+        final_answer = simplify(right)
+        steps.append(f"✅ Final Solution: {var} = {final_answer}")
         
-        steps.append(f"✅ Final Answer: {var} = {simplify(-b/a)}")
+        # Verification step (optional but helpful)
+        steps.append("")
+        steps.append(f"🔍 Verify: Substitute {var} = {final_answer} back into original equation:")
+        left_check = simplify(original_left.subs(var, final_answer))
+        right_check = simplify(original_right.subs(var, final_answer))
+        steps.append(f"   Left side: {original_left} → {left_check}")
+        steps.append(f"   Right side: {original_right} → {right_check}")
+        if left_check == right_check:
+            steps.append(f"   ✓ Both sides equal {left_check}, solution verified!")
+        
         return steps
 
     def _solve_quadratic_steps(self, left, right, var):
@@ -457,15 +468,6 @@ class MathSolver:
                 steps.append(f"   x = ({-b} ± {int(sqrt_disc)}) / {2*a}")
         
         return steps
-            
-        except Exception as e:
-            return {
-                'answer': f'Error: {str(e)}',
-                'steps': steps,
-                'explanation': 'Check equation format.',
-                'type': 'error',
-                'is_impossible': False
-            }
     
     def _evaluate_expression(self, expr_str):
         steps = [f"📝 Expression: {expr_str}"]

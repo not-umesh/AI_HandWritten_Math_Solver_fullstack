@@ -4,7 +4,7 @@ import axios from 'axios';
 const API_BASE_URL = 'https://ai-handwritten-math-solver-fullstack.onrender.com';
 
 // For local development, use:
-// const API_BASE_URL = 'http://localhost:5000';
+// const API_BASE_URL = 'http://localhost:5001';
 
 const api = axios.create({
     baseURL: API_BASE_URL,

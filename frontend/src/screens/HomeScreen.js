@@ -200,7 +200,7 @@ const HomeScreen = ({ navigation }) => {
                             <View style={styles.featuresList}>
                                 <FeatureItem icon="scan" text="AI-powered handwriting recognition" />
                                 <FeatureItem icon="brush" text="Chalk animation replay" />
-                                <FeatureItem icon="school" text="8th/10th/12th grade explanations" />
+                                <FeatureItem icon="school" text="Step-by-step problem solving" />
                                 <FeatureItem icon="analytics" text="Interactive graph plotter" />
                                 <FeatureItem icon="folder-open" text="Auto-organized history" />
                                 <FeatureItem icon="warning" text="Common mistake detector" />

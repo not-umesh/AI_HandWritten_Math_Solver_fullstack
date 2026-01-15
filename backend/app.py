@@ -61,7 +61,6 @@ limiter = Limiter(
 # Maximum lengths for input fields (OWASP recommendation)
 MAX_EQUATION_LENGTH = 500
 MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024  # 5MB
-ALLOWED_EXPLANATION_MODES = {'grade8', 'grade10', 'grade12', 'standard'}
 
 # Forbidden patterns (SQL injection, XSS, command injection)
 FORBIDDEN_PATTERNS = [
@@ -243,9 +242,8 @@ def solve_equation():
             return jsonify({'success': False, 'error': error}), 400
         
         # SECURITY: Validate explanation mode
-        explanation_mode = data.get('explanation_mode', 'grade10')
-        if explanation_mode not in ALLOWED_EXPLANATION_MODES:
-            explanation_mode = 'grade10'  # Default to safe value
+        # Explanation mode is simplified, ignore specific grade validation
+        explanation_mode = data.get('explanation_mode', 'standard')
         
         # Get handlers (lazy loaded)
         gemini = get_gemini_handler()
@@ -325,9 +323,8 @@ def solve_text_equation():
             return jsonify({'success': False, 'error': error}), 400
         
         # SECURITY: Validate explanation mode
-        explanation_mode = data.get('explanation_mode', 'grade10')
-        if explanation_mode not in ALLOWED_EXPLANATION_MODES:
-            explanation_mode = 'grade10'
+        # Explanation mode is now optional/standard, defaulting to 'standard' if passed
+        explanation_mode = data.get('explanation_mode', 'standard')
         
         solver = get_math_solver()
         solution = solver.solve(equation, explanation_mode)

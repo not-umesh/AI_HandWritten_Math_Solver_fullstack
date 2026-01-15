@@ -15,7 +15,6 @@ import { COLORS } from '../styles/theme';
 import GlassButton from '../components/GlassButton';
 import GlassCard from '../components/GlassCard';
 import TrapAlertCard from '../components/TrapAlertCard';
-import ExplanationToggle from '../components/ExplanationToggle';
 import AnswerToggle from '../components/AnswerToggle';
 import ImpossibleWarning from '../components/ImpossibleWarning';
 import ChalkAnimation from '../components/ChalkAnimation';
@@ -31,8 +30,6 @@ const ResultScreen = ({ navigation, route }) => {
 
 
 
-    // Explanation mode state
-    const [explanationMode, setExplanationMode] = useState('grade10');
     const [currentExplanation, setCurrentExplanation] = useState(result.explanation);
     const [isLoadingExplanation, setIsLoadingExplanation] = useState(false);
 
@@ -54,28 +51,6 @@ const ResultScreen = ({ navigation, route }) => {
             }),
         ]).start();
     }, []);
-
-    // Handle explanation mode change
-    const handleExplanationModeChange = async (newMode) => {
-        if (newMode === explanationMode) return;
-
-        setExplanationMode(newMode);
-        setIsLoadingExplanation(true);
-
-        try {
-            // Re-solve with new explanation mode
-            const equation = result.cleaned_equation || result.detected_equation || result.original_equation;
-            const newResult = await solveTextEquation(equation);
-
-            // For now, use the explanation from the result
-            // In production, pass explanation_mode to the API
-            setCurrentExplanation(newResult.explanation);
-        } catch (error) {
-            console.error('Error changing explanation mode:', error);
-        } finally {
-            setIsLoadingExplanation(false);
-        }
-    };
 
     const handleShare = async () => {
         try {
@@ -230,12 +205,6 @@ Solved by AI Math Solver 🤖
 
                     {/* Answer Toggle (Spoiler style) */}
                     <AnswerToggle answer={result.solution} initiallyExpanded={!isImpossible}>
-                        {/* Explanation Mode Toggle */}
-                        <ExplanationToggle
-                            mode={explanationMode}
-                            onModeChange={handleExplanationModeChange}
-                        />
-
                         {/* Common Mistake Warnings */}
                         {commonMistakes.map((mistake, index) => (
                             <TrapAlertCard key={index} mistake={mistake} />
@@ -253,8 +222,7 @@ Solved by AI Math Solver 🤖
                         {currentExplanation && (
                             <GlassCard style={styles.explanationCard} variant="primary">
                                 <Text style={styles.cardLabel}>
-                                    {explanationMode === 'grade8' ? '📚' :
-                                        explanationMode === 'grade10' ? '📖' : '🎓'} Explanation
+                                    🎓 Explanation
                                 </Text>
                                 <Text style={styles.explanationText}>
                                     {isLoadingExplanation ? 'Loading...' : currentExplanation}
